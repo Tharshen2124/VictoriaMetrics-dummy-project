@@ -1,0 +1,49 @@
+services:
+  victoria-metrics: 
+    image: victoriametrics/victoria-metrics:latest
+    ports:
+      - "8428:8428"
+    volumes:
+      - vm_data:/storage
+    command:
+      - -storageDataPath=/storage
+      # Keep metrics for 2 days
+      - -retentionPeriod=2d
+  
+  victoria-logs: 
+    image: victoriametrics/victoria-logs:latest
+    ports:
+      - "9201:9201"
+    depends_on:
+      - victoria-metrics
+    volumes:
+      - vl_data:/storage
+    command:
+      - -storageDataPath=/storage
+      - -retentionPeriod=2d
+
+  grafana:
+    image: grafana/grafana
+    ports:
+      - "3000:3000"
+    depends_on:
+      - victoria-metrics
+    volumes:
+      - ./grafana-datasources.yaml:/etc/grafana/provisioning/datasources/datasources.yaml
+      - grafana_data:/var/lib/grafana
+
+  opentelemetry:
+    image: otel/opentelemetry-collector-contrib
+    command: ["--config=/etc/otel-collector-config.yaml"]
+    volumes:
+      - ./otel-collector-config.yaml:/etc/otel-collector-config.yaml
+    ports:
+      - "4318:4318"
+    depends_on:
+      - victoria-metrics
+
+
+volumes:
+  vm_data:
+  vl_data:
+  grafana_data:
