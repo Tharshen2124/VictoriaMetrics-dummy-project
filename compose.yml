@@ -26,11 +26,12 @@ services:
     image: grafana/grafana
     ports:
       - "3000:3000"
-    depends_on:
-      - victoria-metrics
-    volumes:
+    volumes: # to store grafana configurations, dashboards, states and etc
       - ./grafana-datasources.yaml:/etc/grafana/provisioning/datasources/datasources.yaml
       - grafana_data:/var/lib/grafana
+    depends_on:
+      - victoria-metrics 
+      - victoria-logs
 
   opentelemetry:
     image: otel/opentelemetry-collector-contrib
@@ -39,9 +40,6 @@ services:
       - ./otel-collector-config.yaml:/etc/otel-collector-config.yaml
     ports:
       - "4318:4318"
-    depends_on:
-      - victoria-metrics
-
 
 volumes:
   vm_data:
