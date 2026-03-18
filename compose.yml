@@ -1,47 +1,55 @@
 services:
-  victoria-metrics: 
+
+  # lgtm
+  victoriametrics: 
     image: victoriametrics/victoria-metrics:latest
     ports:
       - "8428:8428"
     volumes:
-      - vm_data:/storage
+      - vmdata:/storage
     command:
       - -storageDataPath=/storage
       # Keep metrics for 2 days
       - -retentionPeriod=2d
+    restart: always
   
-  victoria-logs: 
+  # lgtm
+  victorialogs: 
     image: victoriametrics/victoria-logs:latest
     ports:
-      - "9201:9201"
+      - "9428:9428"
     depends_on:
-      - victoria-metrics
+      - victoriametrics
     volumes:
-      - vl_data:/storage
+      - vldata:/vlogs
     command:
-      - -storageDataPath=/storage
+      - -storageDataPath=/vlogs
       - -retentionPeriod=2d
 
   grafana:
     image: grafana/grafana
     ports:
       - "3000:3000"
-    volumes: # to store grafana configurations, dashboards, states and etc
-      - ./grafana-datasources.yaml:/etc/grafana/provisioning/datasources/datasources.yaml
+    volumes:
+      # tells grafana where the VI and VM are. 
+      - ./grafana-datasource.yml:/etc/grafana/provisioning/datasources/datasource.yaml
       - grafana_data:/var/lib/grafana
+    environment:
+      # allow grafana to query visualise and interact with VictorialMetrics
+      - "GF_INSTALL_PLUGINS=victoriametrics-logs-datasource"
     depends_on:
-      - victoria-metrics 
-      - victoria-logs
+      - victoriametrics 
+      - victorialogs
 
   opentelemetry:
     image: otel/opentelemetry-collector-contrib
-    command: ["--config=/etc/otel-collector-config.yaml"]
+    command: ["--config=/etc/otel-collector-config.yml"]
     volumes:
-      - ./otel-collector-config.yaml:/etc/otel-collector-config.yaml
+      - ./otel-collector-config.yml:/etc/otel-collector-config.yml
     ports:
       - "4318:4318"
 
 volumes:
-  vm_data:
-  vl_data:
-  grafana_data:
+  vmdata: {}
+  vldata: {}
+  grafana_data: {}

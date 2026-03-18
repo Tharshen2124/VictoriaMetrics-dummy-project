@@ -1,0 +1,14 @@
+# this file is used to tell grafana to connect to our VM and VI instances. 
+# It is mounted as a volume in the grafana service in compose.yml
+apiVersion: 1
+
+datasources:
+  - name: VictoriaLogs
+    type: victoriametrics-logs-datasource
+    access: proxy
+    url:  http://victorialogs:9428/
+
+  - name: VictoriaMetrics
+    type: prometheus
+    access: proxy
+    url: http://victoriametrics:8428/

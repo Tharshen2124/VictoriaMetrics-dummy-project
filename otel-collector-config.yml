@@ -1,0 +1,24 @@
+# collects telemetry data from one or more sources
+receivers:
+  otlp:
+    protocols:
+      http:
+        endpoint: 0.0.0.0:4318
+
+service:
+  pipelines:
+    metrics:
+      receivers: [otlp]
+      exporters: [otlphttp/victoriametrics]
+    logs:
+      receivers: [otlp]
+      exporters: [otlphttp/victorialogs]
+
+exporters:
+  otlphttp/victoriametrics:
+    compression: gzip
+    encoding: proto
+    metrics_endpoint: "http://victoriametrics:8428/opentelemetry/v1/metrics"
+
+  otlphttp/victorialogs:
+    logs_endpoint: "http://victorialogs:9428/insert/opentelemetry/v1/logs"
