@@ -1,6 +1,5 @@
 services:
 
-  # lgtm
   victoriametrics: 
     image: victoriametrics/victoria-metrics:latest
     ports:
@@ -32,7 +31,7 @@ services:
       - "3000:3000"
     volumes:
       # tells grafana where the VI and VM are. 
-      - ./grafana-datasource.yml:/etc/grafana/provisioning/datasources/datasource.yaml
+      - ./config/grafana-datasource.yml:/etc/grafana/provisioning/datasources/datasource.yaml
       - grafana_data:/var/lib/grafana
     environment:
       # allow grafana to query visualise and interact with VictorialMetrics
@@ -45,7 +44,7 @@ services:
     image: otel/opentelemetry-collector-contrib
     command: ["--config=/etc/otel-collector-config.yml"]
     volumes:
-      - ./otel-collector-config.yml:/etc/otel-collector-config.yml
+      - ./config/otel-collector-config.yml:/etc/otel-collector-config.yml
     ports:
       - "4318:4318"
 
