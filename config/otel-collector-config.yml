@@ -6,6 +6,9 @@ receivers:
         endpoint: 0.0.0.0:4318
 
 service:
+  telemetry:
+    logs:
+      level: debug
   pipelines:
     metrics:
       receivers: [otlp]
