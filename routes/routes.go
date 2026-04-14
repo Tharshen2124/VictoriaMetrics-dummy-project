@@ -16,7 +16,6 @@ func RegisterRoutes(router *mux.Router) {
 
 	api.HandleFunc("/users", handlers.CreateUser).Methods("POST")
 	api.HandleFunc("/users/{id}", handlers.GetUser).Methods("GET")
-	api.HandleFunc("/users/{id}/orders", handlers.ListOrdersByUser).Methods("GET")
 
 	api.HandleFunc("/products", handlers.GetAllProducts).Methods("GET")
 	api.HandleFunc("/products", handlers.CreateProduct).Methods("POST")
@@ -27,4 +26,5 @@ func RegisterRoutes(router *mux.Router) {
 	api.HandleFunc("/orders", handlers.CreateOrder).Methods("POST")
 	api.HandleFunc("/orders/{id}", handlers.GetOrder).Methods("GET")
 	api.HandleFunc("/orders/{id}/status", handlers.UpdateOrderStatus).Methods("PUT")
+	api.HandleFunc("/users/{id}/orders", handlers.ListOrdersByUser).Methods("GET")
 }

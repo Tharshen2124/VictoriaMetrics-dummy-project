@@ -5,6 +5,24 @@ import (
 	"fmt"
 	"net/http"
 	"time"
+	"github.com/gorilla/mux"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/metric"
+)
+
+const name = "vivm_dummy_project"
+
+var meter = otel.Meter(name)
+var requestCount, _ = meter.Int64Counter("http.request.count",
+	metric.WithDescription("Total number of HTTP requests"),
+)
+var requestDuration, _ = meter.Float64Histogram("http.request.duration",
+	metric.WithDescription("HTTP request duration in milliseconds"),
+	metric.WithUnit("ms"),
+)
+var errorCount, _ = meter.Int64Counter("http.error.count",
+	metric.WithDescription("Total number of HTTP errors"),
 )
 
 // responseWriter is a thin wrapper around http.ResponseWriter that captures
@@ -16,29 +34,50 @@ type responseWriter struct {
 }
 
 // WriteHeader intercepts the status code before delegating to the real writer.
-func (rw *responseWriter) WriteHeader(code int) {
-	rw.status = code
-	rw.ResponseWriter.WriteHeader(code)
+func (responseWriter *responseWriter) WriteHeader(code int) {
+	responseWriter.status = code
+	responseWriter.ResponseWriter.WriteHeader(code)
 }
+
 
 // Logging is an HTTP middleware that logs the method, path, response status
 // code, and elapsed duration of every request.
 func Logging(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	return http.HandlerFunc(func(httpResponseWriter http.ResponseWriter, r *http.Request) {
 		start := time.Now()
 
-		rw := &responseWriter{
-			ResponseWriter: w,
-			status:         http.StatusOK, // default if WriteHeader is never called
+		responseWriter := &responseWriter{
+			ResponseWriter: httpResponseWriter,
+			status:         http.StatusOK,
 		}
 
-		next.ServeHTTP(rw, r)
+		next.ServeHTTP(responseWriter, r)
+
+		route := mux.CurrentRoute(r)
+		routeName := r.URL.Path
+		if route != nil {
+			if tpl, err := route.GetPathTemplate(); err == nil {
+				routeName = tpl
+			}
+		}
+
+		attrs := metric.WithAttributes(
+			attribute.String("method", r.Method),
+			attribute.String("path", routeName),
+			attribute.Int("status code", responseWriter.status),
+		)
+
+		requestCount.Add(r.Context(), 1, attrs)
+		requestDuration.Record(r.Context(), float64(time.Since(start).Milliseconds()), attrs)
+		if responseWriter.status >= 400 {
+			errorCount.Add(r.Context(), 1, attrs)
+		}
 
 		fmt.Printf(
 			"[HTTP] method=%s path=%s status=%d duration=%s\n",
 			r.Method,
-			r.URL.Path,
-			rw.status,
+			routeName,
+			responseWriter.status,
 			time.Since(start).Round(time.Microsecond),
 		)
 	})

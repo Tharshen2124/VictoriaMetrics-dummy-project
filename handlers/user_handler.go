@@ -9,7 +9,6 @@ import (
 	"strings"
 	"time"
 
-	"go.opentelemetry.io/otel/attribute"
 	"github.com/gorilla/mux"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/contrib/bridges/otelslog"
@@ -24,26 +23,10 @@ const name = "vivm_dummy_project"
 var (
 	meter = otel.Meter(name)
 	logger = otelslog.NewLogger(name)
-
-	requestCount, _   = meter.Int64Counter("http.request.count",
-		metric.WithDescription("Total number of HTTP requests"),
-	)
-
-	requestDuration, _ = meter.Float64Histogram("http.request.duration",
-		metric.WithDescription("HTTP request duration in milliseconds"),
-		metric.WithUnit("ms"),
-	)
-	
 	userCreatedCount, _ = meter.Int64Counter("user.created.count",
 		metric.WithDescription("Total number of users created"),
 	)
-
-	errorCount, _ = meter.Int64Counter("http.error.count",
-		metric.WithDescription("Total number of HTTP errors"),
-	)
 )
-
-
 
 // createUserRequest is the expected JSON body for POST /api/users.
 type createUserRequest struct {
@@ -61,7 +44,6 @@ func mapToSlogAttrs(fields map[string]any) []any {
 
 // CreateUser handles POST /api/users.
 func CreateUser(w http.ResponseWriter, r *http.Request) {
-	start := time.Now()
 
 	logFields := map[string]any{
 		"handler":  "CreateUser",
@@ -75,26 +57,16 @@ func CreateUser(w http.ResponseWriter, r *http.Request) {
 		logFields["status"] = http.StatusBadRequest
 		logger.ErrorContext(r.Context(), "invalid JSON body", mapToSlogAttrs(logFields)...)
 
-		requestCount.Add(r.Context(), 1, metric.WithAttributes(
-			attribute.String("handler", "CreateUser"),
-			attribute.Int("status", http.StatusBadRequest),
-		))
-		errorCount.Add(r.Context(), 1, metric.WithAttributes(
-			attribute.String("handler", "CreateUser"),
-			attribute.String("error_type", "invalid_json"),
-		))
-		requestDuration.Record(r.Context(), float64(time.Since(start).Milliseconds()), metric.WithAttributes(
-			attribute.String("handler", "CreateUser"),
-		))
-
 		utils.Error(w, http.StatusBadRequest, "invalid JSON body")
 		return
 	}
 
 	req.Name = strings.TrimSpace(req.Name)
 	req.Email = strings.TrimSpace(req.Email)
-	logFields["user_email"] = req.Email
-	logFields["user_name"] = req.Name
+	logFields["user"] = map[string]any{
+		"name":  req.Name,
+		"email": req.Email,
+	}
 
 	if req.Name == "" || req.Email == "" {
 		logFields["error"] = "missing required fields"
@@ -136,21 +108,10 @@ func CreateUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	logFields["user_id"] = user.ID
 	logFields["status"] = http.StatusCreated
 	logger.InfoContext(r.Context(), "user created successfully", mapToSlogAttrs(logFields)...)
-
-	requestCount.Add(r.Context(), 1, metric.WithAttributes(
-		attribute.String("handler", "CreateUser"),
-		attribute.Int("status", http.StatusCreated),
-	))
 	
 	userCreatedCount.Add(r.Context(), 1)
-	
-	requestDuration.Record(r.Context(), float64(time.Since(start).Milliseconds()), metric.WithAttributes(
-		attribute.String("handler", "CreateUser"),
-	))
-
 	utils.JSON(w, http.StatusCreated, created)
 }
 
@@ -158,17 +119,35 @@ func CreateUser(w http.ResponseWriter, r *http.Request) {
 func GetUser(w http.ResponseWriter, r *http.Request) {
 	id := mux.Vars(r)["id"]
 
+	logFields := map[string]any{
+		"handler": "GetUser",
+		"method":  r.Method,
+		"path":    r.URL.Path,
+		"user_id": id,
+	}
+
 	user, err := db.Store.GetUser(id)
 	if errors.Is(err, db.ErrNotFound) {
+		logFields["error"] = "user not found"
+		logFields["status"] = http.StatusNotFound
+		logger.ErrorContext(r.Context(), "user not found", mapToSlogAttrs(logFields)...)
+		
 		fmt.Printf("[HANDLER] GetUser: user id=%s not found\n", id)
 		utils.Error(w, http.StatusNotFound, "user not found")
 		return
 	}
 	if err != nil {
+		logFields["error"] = "db error"
+		logFields["status"] = http.StatusInternalServerError
+		logger.ErrorContext(r.Context(), "db error", mapToSlogAttrs(logFields)...)
+		
 		fmt.Printf("[HANDLER] GetUser: db error: %v\n", err)
 		utils.Error(w, http.StatusInternalServerError, "internal server error")
 		return
 	}
+
+	logFields["status"] = http.StatusOK
+	logger.InfoContext(r.Context(), "user retrieved successfully", mapToSlogAttrs(logFields)...)
 
 	utils.JSON(w, http.StatusOK, user)
 }
