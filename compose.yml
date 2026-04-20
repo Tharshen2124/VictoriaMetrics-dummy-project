@@ -25,6 +25,18 @@ services:
       - -storageDataPath=/vlogs
       - -retentionPeriod=2d
 
+  victoriatraces:
+    image: victoriametrics/victoria-traces:latest
+    ports:
+      - "9429:10428"
+    depends_on:
+      - victoriametrics
+    volumes:
+      - vtracesdata:/vtraces
+    command:
+      - -storageDataPath=/vtraces
+      - -retentionPeriod=2d
+
   grafana:
     image: grafana/grafana
     ports:
@@ -39,6 +51,7 @@ services:
     depends_on:
       - victoriametrics 
       - victorialogs
+      - victoriatraces
 
   opentelemetry:
     image: otel/opentelemetry-collector-contrib
@@ -51,4 +64,5 @@ services:
 volumes:
   vmdata: {}
   vldata: {}
+  vtracesdata: {}
   grafana_data: {}
