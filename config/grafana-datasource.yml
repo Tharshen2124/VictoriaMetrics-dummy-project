@@ -12,3 +12,8 @@ datasources:
     type: prometheus
     access: proxy
     url: http://victoriametrics:8428/
+
+  - name: VictoriaTraces
+    type: opentelemetry-traces-datasource
+    access: proxy
+    url: http://victoriatraces:9429/
