@@ -25,6 +25,8 @@ var errorCount, _ = meter.Int64Counter("http.error.count",
 	metric.WithDescription("Total number of HTTP errors"),
 )
 
+var tracer = otel.Tracer(name)
+
 // responseWriter is a thin wrapper around http.ResponseWriter that captures
 // the HTTP status code written by the downstream handler so the logging
 // middleware can record it after the fact.
@@ -45,6 +47,10 @@ func (responseWriter *responseWriter) WriteHeader(code int) {
 func Logging(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(httpResponseWriter http.ResponseWriter, r *http.Request) {
 		start := time.Now()
+        ctx, span := tracer.Start(r.Context(), fmt.Sprintf("%s %s", r.Method, r.URL.Path))
+		defer span.End()
+
+		r = r.WithContext(ctx)
 
 		responseWriter := &responseWriter{
 			ResponseWriter: httpResponseWriter,

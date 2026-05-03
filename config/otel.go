@@ -9,8 +9,10 @@ import (
 	"go.opentelemetry.io/otel/log/global"
 	"go.opentelemetry.io/otel/sdk/log"
 	"go.opentelemetry.io/otel/sdk/metric"
+	"go.opentelemetry.io/otel/sdk/trace"
 	"go.opentelemetry.io/otel/exporters/otlp/otlplog/otlploghttp"
 	"go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetrichttp"
+	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp"
 )
 
 func SetupOTelSDK(ctx context.Context) (func(context.Context) error, error) {
@@ -40,13 +42,20 @@ func SetupOTelSDK(ctx context.Context) (func(context.Context) error, error) {
 	shutdownFuncs = append(shutdownFuncs, meterProvider.Shutdown)
 	otel.SetMeterProvider(meterProvider)
 
+	tracerProvider, err := newTracerProvider(ctx)
+	if err != nil {
+		handleErr(err)
+		return shutdown, err
+	}
+	shutdownFuncs = append(shutdownFuncs, tracerProvider.Shutdown)
+	otel.SetTracerProvider(tracerProvider)
+
 	loggerProvider, err := newLoggerProvider(ctx)
 	if err != nil {
 		handleErr(err)
 		return shutdown, err
 	}
 	shutdownFuncs = append(shutdownFuncs, loggerProvider.Shutdown)
-	
 	global.SetLoggerProvider(loggerProvider)
 
 	return shutdown, err
@@ -87,4 +96,23 @@ func newLoggerProvider(ctx context.Context) (*log.LoggerProvider, error) {
 	))
 
 	return loggerProvider, nil
+}
+
+func newTracerProvider(ctx context.Context) (*trace.TracerProvider, error) {
+	traceExporter, err := otlptracehttp.New(
+		ctx,
+		otlptracehttp.WithEndpoint("localhost:4318"),
+		otlptracehttp.WithInsecure(),
+	)
+
+	if err != nil {
+		return nil, err
+	}
+
+	tracerProvider := trace.NewTracerProvider(
+		// trace.WithSampler(trace.AlwaysSample()), <- what's this option?
+		trace.WithBatcher(traceExporter),
+	)
+
+	return tracerProvider, nil
 }
