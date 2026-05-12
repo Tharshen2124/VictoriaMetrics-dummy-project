@@ -59,7 +59,6 @@ func CreateOrder(w http.ResponseWriter, r *http.Request) {
 			"timestamp": time.Now().Format(time.RFC3339),
 		}
 		logger.ErrorContext(r.Context(), "validation error", utils.MapToSlogAttrs(logFields)...)
-		fmt.Printf("[HANDLER] CreateOrder: invalid JSON body: %v\n", err)
 		utils.Error(w, http.StatusBadRequest, "invalid JSON body")
 		return
 	}
@@ -73,7 +72,6 @@ func CreateOrder(w http.ResponseWriter, r *http.Request) {
 			"timestamp": time.Now().Format(time.RFC3339),
 		}
 		logger.ErrorContext(r.Context(), "validation error", utils.MapToSlogAttrs(logFields)...)
-		fmt.Printf("[HANDLER] CreateOrder: missing user_id\n")
 		utils.Error(w, http.StatusBadRequest, "user_id is required")
 		return
 	}
@@ -86,7 +84,6 @@ func CreateOrder(w http.ResponseWriter, r *http.Request) {
 			"timestamp": time.Now().Format(time.RFC3339),
 		}
 		logger.ErrorContext(r.Context(), "validation error", utils.MapToSlogAttrs(logFields)...)
-		fmt.Printf("[HANDLER] CreateOrder: no items provided\n")
 		utils.Error(w, http.StatusBadRequest, "at least one item is required")
 		return
 	}
@@ -101,7 +98,6 @@ func CreateOrder(w http.ResponseWriter, r *http.Request) {
 			"timestamp": time.Now().Format(time.RFC3339),
 		}
 		logger.ErrorContext(r.Context(), "validation error", utils.MapToSlogAttrs(logFields)...)
-		fmt.Printf("[HANDLER] CreateOrder: user id=%s not found\n", req.UserID)
 		utils.Error(w, http.StatusNotFound, "user not found")
 		return
 	} else if err != nil {
@@ -113,7 +109,6 @@ func CreateOrder(w http.ResponseWriter, r *http.Request) {
 			"timestamp": time.Now().Format(time.RFC3339),
 		}
 		logger.ErrorContext(r.Context(), "db error", utils.MapToSlogAttrs(logFields)...)
-		fmt.Printf("[HANDLER] CreateOrder: GetUser db error: %v\n", err)
 		utils.Error(w, http.StatusInternalServerError, "internal server error")
 		return
 	}
@@ -135,7 +130,6 @@ func CreateOrder(w http.ResponseWriter, r *http.Request) {
 				"timestamp": time.Now().Format(time.RFC3339),
 			}
 			logger.ErrorContext(r.Context(), "validation error", utils.MapToSlogAttrs(logFields)...)
-			fmt.Printf("[HANDLER] CreateOrder: item missing product_id\n")
 			utils.Error(w, http.StatusBadRequest, "each item must have a product_id")
 			return
 		}
@@ -148,7 +142,6 @@ func CreateOrder(w http.ResponseWriter, r *http.Request) {
 				"timestamp": time.Now().Format(time.RFC3339),
 			}
 			logger.ErrorContext(r.Context(), "validation error", utils.MapToSlogAttrs(logFields)...)					
-			fmt.Printf("[HANDLER] CreateOrder: item product_id=%s has quantity %d\n", item.ProductID, item.Quantity)
 			utils.Error(w, http.StatusBadRequest, "item quantity must be at least 1")
 			return
 		}
@@ -163,7 +156,6 @@ func CreateOrder(w http.ResponseWriter, r *http.Request) {
 				"timestamp": time.Now().Format(time.RFC3339),
 			}
 			logger.ErrorContext(r.Context(), "validation error", utils.MapToSlogAttrs(logFields)...)
-			fmt.Printf("[HANDLER] CreateOrder: product id=%s not found\n", item.ProductID)
 			utils.Error(w, http.StatusNotFound, fmt.Sprintf("product %s not found", item.ProductID))
 			return
 		}
@@ -176,7 +168,6 @@ func CreateOrder(w http.ResponseWriter, r *http.Request) {
 				"timestamp": time.Now().Format(time.RFC3339),
 			}
 			logger.ErrorContext(r.Context(), "db error", utils.MapToSlogAttrs(logFields)...)
-			fmt.Printf("[HANDLER] CreateOrder: GetProduct db error: %v\n", err)
 			utils.Error(w, http.StatusInternalServerError, "internal server error")
 			return
 		}
@@ -234,7 +225,6 @@ func CreateOrder(w http.ResponseWriter, r *http.Request) {
 			}
 			logger.ErrorContext(r.Context(), "conflict error", utils.MapToSlogAttrs(logFields)...)
 			
-			fmt.Printf("[HANDLER] CreateOrder: conflict: %s\n", conflictErr.Reason)
 			utils.Error(w, http.StatusConflict, conflictErr.Reason)
 			return
 		}
@@ -247,7 +237,6 @@ func CreateOrder(w http.ResponseWriter, r *http.Request) {
 		}
 		logger.ErrorContext(r.Context(), "db error", utils.MapToSlogAttrs(logFields)...)
 		
-		fmt.Printf("[HANDLER] CreateOrder: db error: %v\n", err)
 		utils.Error(w, http.StatusInternalServerError, "internal server error")
 		return
 	}
@@ -277,7 +266,6 @@ func GetOrder(w http.ResponseWriter, r *http.Request) {
 		}
 		logger.ErrorContext(r.Context(), "order not found", utils.MapToSlogAttrs(logFields)...)
 		
-		fmt.Printf("[HANDLER] GetOrder: order id=%s not found\n", id)
 		utils.Error(w, http.StatusNotFound, "order not found")
 		return
 	}
@@ -291,7 +279,6 @@ func GetOrder(w http.ResponseWriter, r *http.Request) {
 		}
 		logger.ErrorContext(r.Context(), "db error", utils.MapToSlogAttrs(logFields)...)
 
-		fmt.Printf("[HANDLER] GetOrder: db error: %v\n", err)
 		utils.Error(w, http.StatusInternalServerError, "internal server error")
 		return
 	}
@@ -344,7 +331,6 @@ func ListOrdersByUser(w http.ResponseWriter, r *http.Request) {
 		}
 		logger.ErrorContext(r.Context(), "user not found", utils.MapToSlogAttrs(logFields)...)
 		
-		fmt.Printf("[HANDLER] ListOrdersByUser: user id=%s not found\n", userID)
 		utils.Error(w, http.StatusNotFound, "user not found")
 		return
 	} else if err != nil {
@@ -357,7 +343,6 @@ func ListOrdersByUser(w http.ResponseWriter, r *http.Request) {
 		}
 		logger.ErrorContext(r.Context(), "db error", utils.MapToSlogAttrs(logFields)...)
 		
-		fmt.Printf("[HANDLER] ListOrdersByUser: GetUser db error: %v\n", err)
 		utils.Error(w, http.StatusInternalServerError, "internal server error")
 		return
 	}
@@ -373,7 +358,6 @@ func ListOrdersByUser(w http.ResponseWriter, r *http.Request) {
 		}
 		logger.ErrorContext(r.Context(), "db error", utils.MapToSlogAttrs(logFields)...)
 		
-		fmt.Printf("[HANDLER] ListOrdersByUser: ListOrdersByUser db error: %v\n", err)
 		utils.Error(w, http.StatusInternalServerError, "internal server error")
 		return
 	}
@@ -408,7 +392,6 @@ func UpdateOrderStatus(w http.ResponseWriter, r *http.Request) {
 		}
 		logger.ErrorContext(r.Context(), "invalid JSON body", utils.MapToSlogAttrs(logFields)...)
 		
-		fmt.Printf("[HANDLER] UpdateOrderStatus: invalid JSON body: %v\n", err)
 		utils.Error(w, http.StatusBadRequest, "invalid JSON body")
 		return
 	}
@@ -425,7 +408,6 @@ func UpdateOrderStatus(w http.ResponseWriter, r *http.Request) {
 		}
 		logger.ErrorContext(r.Context(), "invalid status", utils.MapToSlogAttrs(logFields)...)
 		
-		fmt.Printf("[HANDLER] UpdateOrderStatus: invalid status %q\n", req.Status)
 		utils.Error(w, http.StatusBadRequest, "status must be one of: pending, completed, cancelled")
 		return
 	}
@@ -440,7 +422,6 @@ func UpdateOrderStatus(w http.ResponseWriter, r *http.Request) {
 		}
 		logger.ErrorContext(r.Context(), "order not found", utils.MapToSlogAttrs(logFields)...)
 		
-		fmt.Printf("[HANDLER] UpdateOrderStatus: order id=%s not found\n", id)
 		utils.Error(w, http.StatusNotFound, "order not found")
 		return
 	} else if err != nil {
@@ -453,7 +434,6 @@ func UpdateOrderStatus(w http.ResponseWriter, r *http.Request) {
 		}
 		logger.ErrorContext(r.Context(), "db error", utils.MapToSlogAttrs(logFields)...)
 		
-		fmt.Printf("[HANDLER] UpdateOrderStatus: db error: %v\n", err)
 		utils.Error(w, http.StatusInternalServerError, "internal server error")
 		return
 	}
@@ -468,7 +448,6 @@ func UpdateOrderStatus(w http.ResponseWriter, r *http.Request) {
 			"timestamp": time.Now().Format(time.RFC3339),
 		}
 		logger.ErrorContext(r.Context(), "db error", utils.MapToSlogAttrs(logFields)...)
-		fmt.Printf("[HANDLER] UpdateOrderStatus: GetOrder db error: %v\n", err)
 		utils.Error(w, http.StatusInternalServerError, "internal server error")
 		return
 	}

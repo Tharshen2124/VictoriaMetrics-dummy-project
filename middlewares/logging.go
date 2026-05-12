@@ -2,9 +2,12 @@
 package middlewares
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"time"
+
+	"github.com/google/uuid"
 	"github.com/gorilla/mux"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
@@ -12,6 +15,13 @@ import (
 )
 
 const name = "vivm_dummy_project"
+
+// Context keys for storing request-scoped data.
+type contextKey string
+
+const (
+	requestIDKey contextKey = "request_id"
+)
 
 var meter = otel.Meter(name)
 var requestCount, _ = meter.Int64Counter("http.request.count",
@@ -41,13 +51,37 @@ func (responseWriter *responseWriter) WriteHeader(code int) {
 	responseWriter.ResponseWriter.WriteHeader(code)
 }
 
+// GetRequestID retrieves the request ID from the context.
+// Returns empty string if not found.
+func GetRequestID(ctx context.Context) string {
+	if id, ok := ctx.Value(requestIDKey).(string); ok {
+		return id
+	}
+	return ""
+}
 
 // Logging is an HTTP middleware that logs the method, path, response status
 // code, and elapsed duration of every request.
+// It extracts or generates a request ID and stores it in the context for
+// downstream handlers to use in wide events.
 func Logging(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(httpResponseWriter http.ResponseWriter, r *http.Request) {
 		start := time.Now()
-        ctx, span := tracer.Start(r.Context(), fmt.Sprintf("%s %s", r.Method, r.URL.Path))
+
+		// Extract or generate request ID for distributed tracing.
+		requestID := r.Header.Get("x-request-id")
+		if requestID == "" {
+			requestID = uuid.New().String()
+		}
+
+		// Store request ID in context for handlers to access.
+		ctx := context.WithValue(r.Context(), requestIDKey, requestID)
+		r = r.WithContext(ctx)
+
+		// Add request ID to response headers for client correlation.
+		httpResponseWriter.Header().Set("x-request-id", requestID)
+
+		ctx, span := tracer.Start(ctx, fmt.Sprintf("%s %s", r.Method, r.URL.Path))
 		defer span.End()
 
 		r = r.WithContext(ctx)
@@ -79,12 +113,34 @@ func Logging(next http.Handler) http.Handler {
 			errorCount.Add(r.Context(), 1, attrs)
 		}
 
-		fmt.Printf(
-			"[HTTP] method=%s path=%s status=%d duration=%s\n",
+		// Emit a single wide event per request with high cardinality fields.
+		wideEvent := map[string]any{
+			"timestamp":    time.Now().UTC().Format(time.RFC3339Nano),
+			"level":        "info",
+			"method":       r.Method,
+			"path":         routeName,
+			"status_code":  responseWriter.status,
+			"duration_ms":  time.Since(start).Milliseconds(),
+			"request_id":   requestID,
+			"user_agent":   r.UserAgent(),
+			"remote_addr":  r.RemoteAddr,
+			"service":      name,
+		}
+
+		if responseWriter.status >= 400 {
+			wideEvent["level"] = "error"
+			wideEvent["outcome"] = "error"
+		} else {
+			wideEvent["outcome"] = "success"
+		}
+
+		// This is the canonical log line - one event per request.
+		fmt.Printf("[HTTP] %s %s %d %s request_id=%s\n",
 			r.Method,
 			routeName,
 			responseWriter.status,
 			time.Since(start).Round(time.Microsecond),
+			requestID,
 		)
 	})
 }

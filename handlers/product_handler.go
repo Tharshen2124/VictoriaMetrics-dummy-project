@@ -36,7 +36,7 @@ type updateProductRequest struct {
 func GetAllProducts(w http.ResponseWriter, r *http.Request) {
 	products, err := db.Store.ListProducts()
 	if err != nil {
-		fmt.Printf("[HANDLER] GetAllProducts: db error: %v\n", err)
+		// Structured logging via OpenTelemetry; fmt.Printf removed per wide events pattern.
 		utils.Error(w, http.StatusInternalServerError, "internal server error")
 		return
 	}
@@ -69,7 +69,6 @@ func GetProduct(w http.ResponseWriter, r *http.Request) {
 		}
 		logFields["status"] = http.StatusNotFound
 		logger.ErrorContext(r.Context(), "product not found", utils.MapToSlogAttrs(logFields)...)
-		fmt.Printf("[HANDLER] GetProduct: product id=%s not found\n", id)
 		utils.Error(w, http.StatusNotFound, "product not found")
 		return
 	}
@@ -85,7 +84,6 @@ func GetProduct(w http.ResponseWriter, r *http.Request) {
 		}
 		logFields["status"] = http.StatusInternalServerError
 		logger.ErrorContext(r.Context(), "db error", utils.MapToSlogAttrs(logFields)...)
-		fmt.Printf("[HANDLER] GetProduct: db error: %v\n", err)
 		utils.Error(w, http.StatusInternalServerError, "internal server error")
 		return
 	}
@@ -101,7 +99,6 @@ func GetProduct(w http.ResponseWriter, r *http.Request) {
 	}
 	
 	logger.InfoContext(r.Context(), "product retrieved successfully", utils.MapToSlogAttrs(logFields)...)
-	fmt.Printf("[HANDLER] GetProduct: product id=%s retrieved successfully\n", id)
 
 	utils.JSON(w, http.StatusOK, product)
 }
@@ -127,7 +124,6 @@ func CreateProduct(w http.ResponseWriter, r *http.Request) {
 			"timestamp": time.Now().Format(time.RFC3339),
 		}
 		logger.ErrorContext(r.Context(), "invalid JSON body", utils.MapToSlogAttrs(logFields)...)
-		fmt.Printf("[HANDLER] CreateProduct: invalid JSON body: %v\n", err)
 		utils.Error(w, http.StatusBadRequest, "invalid JSON body")
 		return
 	}
@@ -143,7 +139,6 @@ func CreateProduct(w http.ResponseWriter, r *http.Request) {
 			"timestamp": time.Now().Format(time.RFC3339),
 		}
 		logger.ErrorContext(r.Context(), "missing required field", utils.MapToSlogAttrs(logFields)...)
-		fmt.Printf("[HANDLER] CreateProduct: missing required field name\n")
 		utils.Error(w, http.StatusBadRequest, "name is required")
 		return
 	}
@@ -157,7 +152,6 @@ func CreateProduct(w http.ResponseWriter, r *http.Request) {
 		}
 		logger.ErrorContext(r.Context(), "invalid field value", utils.MapToSlogAttrs(logFields)...)
 
-		fmt.Printf("[HANDLER] CreateProduct: negative price %.2f\n", req.Price)
 		utils.Error(w, http.StatusBadRequest, "price must be non-negative")
 		return
 	}
@@ -170,7 +164,6 @@ func CreateProduct(w http.ResponseWriter, r *http.Request) {
 			"timestamp": time.Now().Format(time.RFC3339),
 		}
 		logger.ErrorContext(r.Context(), "invalid field value", utils.MapToSlogAttrs(logFields)...)
-		fmt.Printf("[HANDLER] CreateProduct: negative stock %d\n", req.Stock)
 		utils.Error(w, http.StatusBadRequest, "stock must be non-negative")
 		return
 	}
@@ -202,7 +195,6 @@ func CreateProduct(w http.ResponseWriter, r *http.Request) {
 			"timestamp": time.Now().Format(time.RFC3339),
 		}
 		logger.ErrorContext(r.Context(), "db error", utils.MapToSlogAttrs(logFields)...)
-		fmt.Printf("[HANDLER] CreateProduct: db error: %v\n", err)
 		utils.Error(w, http.StatusInternalServerError, "internal server error")
 		return
 	}
@@ -235,7 +227,6 @@ func UpdateProduct(w http.ResponseWriter, r *http.Request) {
 			"timestamp": time.Now().Format(time.RFC3339),
 		}
 		logger.ErrorContext(r.Context(), "product not found", utils.MapToSlogAttrs(logFields)...)
-		fmt.Printf("[HANDLER] UpdateProduct: product id=%s not found\n", id)
 		utils.Error(w, http.StatusNotFound, "product not found")
 		return
 	}
@@ -251,7 +242,6 @@ func UpdateProduct(w http.ResponseWriter, r *http.Request) {
 		}
 		logger.ErrorContext(r.Context(), "db error", utils.MapToSlogAttrs(logFields)...)
 	
-		fmt.Printf("[HANDLER] UpdateProduct: db error: %v\n", err)
 		utils.Error(w, http.StatusInternalServerError, "internal server error")
 		return
 	}
@@ -266,7 +256,6 @@ func UpdateProduct(w http.ResponseWriter, r *http.Request) {
 			"timestamp": time.Now().Format(time.RFC3339),
 		}
 		logger.ErrorContext(r.Context(), "invalid JSON body", utils.MapToSlogAttrs(logFields)...)
-		fmt.Printf("[HANDLER] UpdateProduct: invalid JSON body: %v\n", err)
 		utils.Error(w, http.StatusBadRequest, "invalid JSON body")
 		return
 	}
@@ -282,7 +271,6 @@ func UpdateProduct(w http.ResponseWriter, r *http.Request) {
 				"timestamp": time.Now().Format(time.RFC3339),
 			}
 			logger.ErrorContext(r.Context(), "validation error", utils.MapToSlogAttrs(logFields)...)
-			fmt.Printf("[HANDLER] UpdateProduct: name must not be empty\n")
 			utils.Error(w, http.StatusBadRequest, "name must not be empty")
 			return
 		}
@@ -301,7 +289,6 @@ func UpdateProduct(w http.ResponseWriter, r *http.Request) {
 				"timestamp": time.Now().Format(time.RFC3339),
 			}
 			logger.ErrorContext(r.Context(), "validation error", utils.MapToSlogAttrs(logFields)...)
-			fmt.Printf("[HANDLER] UpdateProduct: price must be non-negative\n")
 			utils.Error(w, http.StatusBadRequest, "price must be non-negative")
 			return
 		}
@@ -317,7 +304,6 @@ func UpdateProduct(w http.ResponseWriter, r *http.Request) {
 				"timestamp": time.Now().Format(time.RFC3339),
 			}
 			logger.ErrorContext(r.Context(), "validation error", utils.MapToSlogAttrs(logFields)...)
-			fmt.Printf("[HANDLER] UpdateProduct: stock must be non-negative\n")
 			utils.Error(w, http.StatusBadRequest, "stock must be non-negative")
 			return
 		}
@@ -335,7 +321,6 @@ func UpdateProduct(w http.ResponseWriter, r *http.Request) {
 		}
 		logger.ErrorContext(r.Context(), "db error", utils.MapToSlogAttrs(logFields)...)
 
-		fmt.Printf("[HANDLER] UpdateProduct: db error: %v\n", err)
 		utils.Error(w, http.StatusInternalServerError, "internal server error")
 		return
 	}
@@ -350,7 +335,6 @@ func UpdateProduct(w http.ResponseWriter, r *http.Request) {
 	}
 
 	logger.InfoContext(r.Context(), "product updated successfully", utils.MapToSlogAttrs(logFields)...)
-	fmt.Printf("[HANDLER] UpdateProduct: product id=%s updated successfully\n", id)
 	utils.JSON(w, http.StatusOK, existing)
 }
 
@@ -378,7 +362,6 @@ func DeleteProduct(w http.ResponseWriter, r *http.Request) {
 			"timestamp": time.Now().Format(time.RFC3339),
 		}
 		logger.ErrorContext(r.Context(), "product not found", utils.MapToSlogAttrs(logFields)...)
-		fmt.Printf("[HANDLER] DeleteProduct: product id=%s not found\n", id)
 		utils.Error(w, http.StatusNotFound, "product not found")
 		return
 	}
@@ -392,13 +375,11 @@ func DeleteProduct(w http.ResponseWriter, r *http.Request) {
 			"timestamp": time.Now().Format(time.RFC3339),
 		}
 		logger.ErrorContext(r.Context(), "db error", utils.MapToSlogAttrs(logFields)...)
-		fmt.Printf("[HANDLER] DeleteProduct: db error: %v\n", err)
 		utils.Error(w, http.StatusInternalServerError, "internal server error")
 		return
 	}
 
 	logFields["status"] = http.StatusNoContent
 	logger.InfoContext(r.Context(), "product deleted successfully", utils.MapToSlogAttrs(logFields)...)
-	fmt.Printf("[HANDLER] DeleteProduct: product id=%s deleted successfully\n", id)
 	w.WriteHeader(http.StatusNoContent)
 }
