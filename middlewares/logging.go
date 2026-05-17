@@ -3,12 +3,12 @@ package middlewares
 
 import (
 	"fmt"
-	"net/http"
-	"time"
 	"github.com/gorilla/mux"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/metric"
+	"net/http"
+	"time"
 )
 
 const name = "vivm_dummy_project"
@@ -41,13 +41,12 @@ func (responseWriter *responseWriter) WriteHeader(code int) {
 	responseWriter.ResponseWriter.WriteHeader(code)
 }
 
-
 // Logging is an HTTP middleware that logs the method, path, response status
 // code, and elapsed duration of every request.
 func Logging(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(httpResponseWriter http.ResponseWriter, r *http.Request) {
 		start := time.Now()
-        ctx, span := tracer.Start(r.Context(), fmt.Sprintf("%s %s", r.Method, r.URL.Path))
+		ctx, span := tracer.Start(r.Context(), fmt.Sprintf("%s %s", r.Method, r.URL.Path))
 		defer span.End()
 
 		r = r.WithContext(ctx)

@@ -6,13 +6,13 @@ import (
 	"time"
 
 	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/exporters/otlp/otlplog/otlploghttp"
+	"go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetrichttp"
+	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp"
 	"go.opentelemetry.io/otel/log/global"
 	"go.opentelemetry.io/otel/sdk/log"
 	"go.opentelemetry.io/otel/sdk/metric"
 	"go.opentelemetry.io/otel/sdk/trace"
-	"go.opentelemetry.io/otel/exporters/otlp/otlplog/otlploghttp"
-	"go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetrichttp"
-	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp"
 )
 
 func SetupOTelSDK(ctx context.Context) (func(context.Context) error, error) {
@@ -63,7 +63,7 @@ func SetupOTelSDK(ctx context.Context) (func(context.Context) error, error) {
 
 func newMeterProvider(ctx context.Context) (*metric.MeterProvider, error) {
 	metricExporter, err := otlpmetrichttp.New(
-		ctx, 
+		ctx,
 		otlpmetrichttp.WithEndpoint("opentelemetry:4318"),
 		otlpmetrichttp.WithInsecure(),
 	)
@@ -92,8 +92,7 @@ func newLoggerProvider(ctx context.Context) (*log.LoggerProvider, error) {
 	}
 
 	loggerProvider := log.NewLoggerProvider(
-		log.WithProcessor(log.NewBatchProcessor(logExporter),
-	))
+		log.WithProcessor(log.NewBatchProcessor(logExporter)))
 
 	return loggerProvider, nil
 }

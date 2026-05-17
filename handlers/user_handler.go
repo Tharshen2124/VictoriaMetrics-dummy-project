@@ -4,7 +4,6 @@ package handlers
 import (
 	"encoding/json"
 	"errors"
-	"fmt"
 	"net/http"
 	"strings"
 	"time"
@@ -133,7 +132,6 @@ func GetUser(w http.ResponseWriter, r *http.Request) {
 		logFields["status"] = http.StatusNotFound
 		logger.ErrorContext(r.Context(), "user not found", utils.MapToSlogAttrs(logFields)...)
 
-		fmt.Printf("[HANDLER] GetUser: user id=%s not found\n", id)
 		utils.Error(w, http.StatusNotFound, "user not found")
 		return
 	}
@@ -142,7 +140,6 @@ func GetUser(w http.ResponseWriter, r *http.Request) {
 		logFields["status"] = http.StatusInternalServerError
 		logger.ErrorContext(r.Context(), "db error", utils.MapToSlogAttrs(logFields)...)
 
-		fmt.Printf("[HANDLER] GetUser: db error: %v\n", err)
 		utils.Error(w, http.StatusInternalServerError, "internal server error")
 		return
 	}

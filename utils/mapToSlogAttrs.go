@@ -11,4 +11,3 @@ func MapToSlogAttrs(fields map[string]any) []any {
 	}
 	return attrs
 }
-

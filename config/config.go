@@ -17,7 +17,7 @@ func LoadConfig() (*Config, error) {
 	viper.AutomaticEnv()
 
 	_ = viper.ReadInConfig()
-	
+
 	if err := v.BindEnv("PORT"); err != nil {
 		return nil, fmt.Errorf("bind PORT: %w", err)
 	}
